@@ -12,6 +12,8 @@
 
 [ ]  3) Garant by měl být někde mezi vyučujícími. Pokud má předmět přednášku, měl by být přednášející.
 
+> Pan Škvor sbírá 11 error kódů.
+
 ## Kontrola proti rozvrhovaným akcím
 
 [ ]  1) vyučující u rozvrhových akcí musí být v příslušných kategoriích u vyučujících
