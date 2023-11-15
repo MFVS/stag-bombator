@@ -10,7 +10,7 @@
 
 [ ]  2) Každý předmět má alespoň jednoho vyučujícího v kategoriích dle parametrů předmětu, tj. např. pokud má předmět rozsah 2 h přednášek a 2 h cvičení, pak musí mít alespoň jednoho přednášejícího a alespoň jednoho cvičícího a zároveň nesmí mít vyučujícího v kategorii vede seminář.
 
-[ ]  3) Garant by měl být někde mezi vyučujícími. Pokud má předmět přednášku, měl by být přednášející.
+[ ]  3) Garant by měl být někde mezi vyučujícími. Pokud má předmět přednášku, měl by být přednášející.1
 
 > Pan Škvor sbírá 11 error kódů.
 
@@ -32,3 +32,5 @@
 - Nechceme znát duplikáty a předměty, které už nejsou aktuální?
 - Chceme znát předměty, u kterých je ve stagu příliš málo informací o obsahu?
 - Nechceme zkontrolovat, jestli všechny prerekvizity, korekvizity a navazující předměty existují?
+
+> Zálkadní zadání je kontrola aktuálních studijních plánů
