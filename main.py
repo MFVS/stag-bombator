@@ -1,5 +1,6 @@
 import streamlit as st
-import streamlit_modal as st_modal
+from streamlit_modal import Modal
+import streamlit.components.v1 as components
 import httpx
 import polars as pl
 import pandas as pd
@@ -7,16 +8,18 @@ import io
 from bs4 import BeautifulSoup
 
 st.set_page_config(
-    page_title="Kontroly rozvrhů",
+    page_title="Kontroly STAGU",
     page_icon="🧊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-st.title("Kontroly rozvrhů")
+st.title("Kontroly předmětů ve studijním plánu")
 
 cols = [*st.columns([1, 2, 2, 2])]
 infoMessage = st.empty()
 errorMessage = st.empty()
+
+modal = Modal("Demo Modal", "This is the modal body")
 
 with cols[0]:
     col1, col2 = st.columns(2)
@@ -56,51 +59,70 @@ with cols[0]:
             errorMessage.error("Nepodařilo se načíst výčet fakult")
             st.stop()
         fakulty = map(lambda x: x.get("value"), options)
-        st.selectbox("Fakulta", fakulty)
+        fakulta = st.selectbox("Fakulta", fakulty, index=9)
     with col2:
-        st.button("filtr", key="filtrProgramu")
+        if st.button("filtr", key="filtrProgramu"):
+        # if open_modal:
+            modal.open()
+
+        if modal.is_open():
+            with modal.container():
+                st.write("Text goes here")
+
+                html_string = '''
+                <h1>HTML string in RED</h1>
+
+                <script language="javascript">
+                document.querySelector("h1").style.color = "red";
+                </script>
+                '''
+                components.html(html_string)
+
+                st.write("Some fancy text")
+                value = st.checkbox("Check me")
+                st.write(f"Checkbox checked: {value}")
 with cols[1]:
     col1, col2 = st.columns(2)
     with col1:
-        getStudijniProgramy  = httpx.get("https://ws.ujep.cz/ws/services/rest2/programy/getStudijniProgramy?kod=%25&fakulta=PRF&outputFormat=JSON")
+        getStudijniProgramy  = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/programy/getStudijniProgramy?kod=%25&fakulta={fakulta}&outputFormat=JSON")
         if getStudijniProgramy.status_code != 200:
             st.error("Nepodařilo se načíst seznam studijních programů")
             st.stop()
         studijniProgramy = getStudijniProgramy.json().get("programInfo")
         selected = st.selectbox("Studijní program", map (lambda x: x.get("nazev"), studijniProgramy))
-        selectedIdno = list(filter(lambda x: x.get("nazev") == selected, studijniProgramy))[0].get("stprIdno") # FIXME: nesmí mít více stejný název
-        # vezmi vybrane strpIdno
+        vybraneIdno = list(filter(lambda x: x.get("nazev") == selected, studijniProgramy))[0].get("stprIdno") # FIXME: nesmí mít více programů stejný název
     with col2:
         st.button("filtr", "studijniProgramFiltr")
 with cols[2]:
     col1, col2 = st.columns(2)
     with col1:
-        getOboryStudijnihoProgramu = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/programy/getOboryStudijnihoProgramu?outputFormat=JSON&stprIdno={selectedIdno}")
+        getOboryStudijnihoProgramu = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/programy/getOboryStudijnihoProgramu?outputFormat=JSON&stprIdno={vybraneIdno}")
         if getOboryStudijnihoProgramu.status_code != 200:
             st.error("Nepodařilo se načíst seznam oborů studijního programu")
             st.stop()
         obory = getOboryStudijnihoProgramu.json().get("oborInfo")
         oborNazvy = map(lambda x: x.get("nazev"), obory)
-        st.selectbox("Obor", oborNazvy)
+        vybranyObor = st.selectbox("Obor", oborNazvy)
+        vybraneOborIdno = list(filter(lambda x: x.get("nazev") == vybranyObor, obory))[0].get("oborIdno") # FIXME: nesmí mít více oborů stejný název
         # vezmi vybrane oborIdno
     with col2:
         st.button("filtr", key="oborFiltr")
 with cols[3]:
     col1, col2 = st.columns(2)
     with col1:
-        getPlanyOboru = httpx.get("https://ws.ujep.cz/ws/services/rest2/programy/getPlanyOboru?oborIdno=1739&outputFormat=JSON")
+        getPlanyOboru = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/programy/getPlanyOboru?oborIdno={vybraneOborIdno}&outputFormat=JSON")
         if getPlanyOboru.status_code != 200:
             st.error("Nepodařilo se načíst seznam plánů oboru")
             st.stop()
         plany = getPlanyOboru.json().get("planInfo")
         planNazvy = map(lambda x: x.get("nazev"), plany)
-        st.selectbox("Plán oboru", planNazvy)
-        # vezmi vybrane stplIdno
+        vybranyPlan = st.selectbox("Plán oboru", planNazvy)
+        vybraneStplIdno = list(filter(lambda x: x.get("nazev") == vybranyPlan, plany))[0].get("stplIdno") # FIXME: nesmí mít více plánů stejný název
     with col2:
         st.button("filtr", key="planOboruFiltr")
 
 st.divider()
-getSegmentyPlanu = httpx.get("https://ws.ujep.cz/ws/services/rest2/programy/getSegmentyPlanu?stplIdno=15660&outputFormat=JSON")
+getSegmentyPlanu = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/programy/getSegmentyPlanu?stplIdno={vybraneStplIdno}&outputFormat=JSON")
 if getSegmentyPlanu.status_code != 200:
     st.error("Nepodařilo se načíst seznam segmentů plánu")
     st.stop()
@@ -109,19 +131,22 @@ for segment in segmentyPlanu:
     with st.spinner("Získávám data ze stagu..."):
         st.header(segment.get("nazev"))
         sespIdno = segment.get("sespIdno")
-        getBlokySegmentu = httpx.get("https://ws.ujep.cz/ws/services/rest2/programy/getBlokySegmentu?sespIdno=28007&outputFormat=JSON")
+        getBlokySegmentu = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/programy/getBlokySegmentu?sespIdno={sespIdno}&outputFormat=JSON")
         if getBlokySegmentu.status_code != 200:
             st.error("Nepodařilo se načíst seznam bloků segmentu")
             st.stop()
-        # vyber blokIdno
-        getPredmetyByBlokFullInfo = httpx.get("https://ws.ujep.cz/ws/services/rest2/predmety/getPredmetyByBlokFullInfo?blokIdno=42421&outputFormat=XLSX")
-        if getPredmetyByBlokFullInfo.status_code != 200:
-            st.error("Nepodařilo se načíst seznam předmětů bloku")
-            st.stop()
-        text = getPredmetyByBlokFullInfo.content
-        # print(text.decode("utf-8"))
-        df = pl.read_excel(io.BytesIO(text))
-        st.dataframe(df.to_pandas())
+        vybraneBloky = getBlokySegmentu.json().get("blokInfo")
+        for blok in vybraneBloky:
+            vybraneBlokIdno = blok.get("blokIdno")
+            assert vybraneBlokIdno is not None and  vybraneBlokIdno != ""
+            getPredmetyByBlokFullInfo = httpx.get(f"https://ws.ujep.cz/ws/services/rest2/predmety/getPredmetyByBlokFullInfo?blokIdno={vybraneBlokIdno}&outputFormat=XLSX")
+            if getPredmetyByBlokFullInfo.status_code != 200:
+                st.error("Nepodařilo se načíst seznam předmětů bloku")
+                st.stop()
+            text = getPredmetyByBlokFullInfo.content
+            # print(text.decode("utf-8"))
+            df = pl.read_excel(io.BytesIO(text))
+            st.dataframe(df.to_pandas())
 
 st.divider()
 st.header("Nalezené chyby:")
@@ -138,3 +163,5 @@ st.warning("Předmět nemá název")
 st.error("Garant nemá titul")
 
 # TODO: analýza chyb
+st.divider()
+st.button("export nastavení")
