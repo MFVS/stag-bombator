@@ -32,5 +32,8 @@
 - Nechceme znát duplikáty a předměty, které už nejsou aktuální?
 - Chceme znát předměty, u kterých je ve stagu příliš málo informací o obsahu?
 - Nechceme zkontrolovat, jestli všechny prerekvizity, korekvizity a navazující předměty existují?
+- Není každý studijní plán zaštiťovaný nějakou katedrou?
 
 > Zálkadní zadání je kontrola aktuálních studijních plánů
+> hlavni filtr - fakulta, rok, forma atd.
+> umej jich vybrat vic + searchbox
