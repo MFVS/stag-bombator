@@ -7,6 +7,9 @@ import polars as pl
 import httpx
 from datetime import datetime, timedelta
 from io import StringIO
+import sqlite3 as sql
+
+# FIXME: joining dataframes loses lots of rows
 
 PLANY_CACHE_FPATH = "cache/plany.csv"
 OBORY_CACHE_FPATH = "cache/obory.csv"
@@ -23,6 +26,31 @@ try: # ensure cache directory exists
     os.mkdir("cache")
 except:
     pass
+
+# ciselnik_programy = httpx.get("https://ws.ujep.cz/ws/services/rest2/ciselniky/getCiselnik?domena=PROGRAM&outputFormatEncoding=utf-8&outputFormat=CSV")
+ciselnik_plany = httpx.get("https://ws.ujep.cz/ws/services/rest2/ciselniky/getCiselnik?domena=PLAN&outputFormat=CSV&outputFormatEncoding=utf-8")
+if ciselnik_plany.status_code != 200:
+    st.error("Nepodařilo se načíst seznam studijních programů")
+    st.error(f"Response code {ciselnik_plany.status_code}")
+    st.stop()
+ciselnik_plany_df = pd.read_csv(StringIO(ciselnik_plany.text), sep=";")
+# @st.cache_resource
+def create_db():
+    return sql.connect("cache/ciselniky.db")
+db = create_db()
+table_name = 'ciselnik_plany'
+data_types = {col: ciselnik_plany_df[col].dtype for col in ciselnik_plany_df.columns}
+create_table_query = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join([f'{col} {data_types[col]}' for col in ciselnik_plany_df.columns])});"
+db.execute(create_table_query)
+# create_table_query = f"CREATE TABLE IF NOT EXISTS {table_name}_new ({', '.join([f'{col} {data_types[col]}' for col in ciselnik_plany_df.columns])});"
+# db.execute(create_table_query)
+ciselnik_plany_df.to_sql(f"{table_name}_new", db, index=False, if_exists='replace')
+
+new_plany = db.execute(f"SELECT * FROM {table_name}_new JOIN {table_name} USING (key) WHERE key IS NULL",).fetchall()
+st.table(new_plany)
+db.execute(f"DELETE FROM {table_name}")
+db.executemany(f"INSERT INTO {table_name} VALUES ({','.join(len(new_plany[0]))}", new_plany)
+st.table(ciselnik_plany_df)
 
 should_reload_cache = not os.path.exists(PROGRAMY_CACHE_FPATH)
 should_reload_cache = should_reload_cache or datetime.fromtimestamp(os.path.getmtime(PROGRAMY_CACHE_FPATH)) < datetime.now() - timedelta(days=1)
@@ -73,6 +101,7 @@ if not os.path.exists(PLANY_CACHE_FPATH) or should_reload_cache:
         df_plany = pd.concat(plany)
         df_plany.to_csv(PLANY_CACHE_FPATH)
 df_plany = pd.read_csv(PLANY_CACHE_FPATH)
+st.info("pocet planu: " + str(len(df_plany)))
 def dataframe_with_selections(df):
     df_with_selections = df.copy()
     df_with_selections.insert(0, "Select", False)
