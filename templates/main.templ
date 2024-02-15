@@ -1,0 +1,57 @@
+package templates
+
+templ Imports() {
+	<link href="https://cdn.jsdelivr.net/npm/beercss@3.4.13/dist/cdn/beer.min.css" rel="stylesheet"/>
+	<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.4.13/dist/cdn/beer.min.js"></script>
+	<script type="module" src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.0/dist/cdn/material-dynamic-colors.min.js"></script>
+}
+
+templ HTMLTemplate(Body templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Document</title>
+			@Imports()
+		</head>
+		<body>
+			@Body
+		</body>
+	</html>
+}
+
+templ ExampleTemplate() {
+	<div>
+		<header>
+			<nav class="top">
+				<button class="circle transparent">
+					<i>menu</i>
+				</button>
+				<h5 class="max center-align">Title</h5>
+				<button class="circle transparent">
+					<img class="responsive" src="/favicon.png"/>
+				</button>
+			</nav>
+		</header>
+        <nav class="left">
+            <a>
+                <i>home</i>
+                <div>Home</div>
+            </a>
+            <a>
+                <i>search</i>
+                <div>Search</div>
+            </a>
+            <a>
+                <i>share</i>
+                <div>share</div>
+            </a>
+        </nav>
+		<main class="responsive">
+			<h3>Expanded</h3>
+		</main>
+		// <main class="responsive">
+		// </main>
+	</div>
+}
